@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha256-Z1K5uhUaJXA7Ll0XrZ/0JhX4lAtZFpT6jkKrEDT0drU=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="问题背景本月在项目中遇到枚举Python字典的需求。使用上发现枚举字典时并不是按照插入顺序进行排序的，并且在不同字典内，枚举顺序都可能不一致： 1234d &#x3D; &amp;#123;&amp;#125;d[1] &#x3D; 1d[0] &#x3D; 1d.keys()  # 输出为:[0, 1]  这与Python3的规则完全不一致。我调查项目中使用Python版本是2.7.18，与Python3有本质上的不同。我通过几段代码，发现">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅谈Python2字典枚举序列">
+<meta property="og:url" content="http://example.com/2023/03/23/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/index.html">
+<meta property="og:site_name" content="Lron&#39;s blog">
+<meta property="og:description" content="问题背景本月在项目中遇到枚举Python字典的需求。使用上发现枚举字典时并不是按照插入顺序进行排序的，并且在不同字典内，枚举顺序都可能不一致： 1234d &#x3D; &amp;#123;&amp;#125;d[1] &#x3D; 1d[0] &#x3D; 1d.keys()  # 输出为:[0, 1]  这与Python3的规则完全不一致。我调查项目中使用Python版本是2.7.18，与Python3有本质上的不同。我通过几段代码，发现">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230326150952739.png">
+<meta property="og:image" content="http://example.com/images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230326163648899.png">
+<meta property="og:image" content="http://example.com/images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230402161816902.png">
+<meta property="og:image" content="http://example.com/images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230403233854570.png">
+<meta property="og:image" content="http://example.com/images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230406235107637.png">
+<meta property="og:image" content="http://example.com/images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230407011522988.png">
+<meta property="og:image" content="http://example.com/images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230407013200236.png">
+<meta property="og:image" content="http://example.com/images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230408000913328.png">
+<meta property="og:image" content="http://example.com/images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230408003333206.png">
+<meta property="og:image" content="http://example.com/images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230408005830821.png">
+<meta property="article:published_time" content="2023-03-23T14:48:33.000Z">
+<meta property="article:modified_time" content="2023-04-07T17:08:48.177Z">
+<meta property="article:author" content="Lron">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="数据结构">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230326150952739.png">
+
+
+<link rel="canonical" href="http://example.com/2023/03/23/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://example.com/2023/03/23/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/","path":"2023/03/23/浅谈Python2字典枚举序列/","title":"浅谈Python2字典枚举序列"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>浅谈Python2字典枚举序列 | Lron's blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+<!-- hexo injector head_end start -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/hexo-math@4.0.0/dist/style.css">
+<!-- hexo injector head_end end --></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Lron's blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">你所热爱的就是你的生活</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E9%97%AE%E9%A2%98%E8%83%8C%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">问题背景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE"><span class="nav-number">2.</span> <span class="nav-text">环境配置</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#dict%E6%A8%A1%E5%9E%8B"><span class="nav-number">3.</span> <span class="nav-text">dict模型</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#dict%E5%AE%9A%E4%B9%89"><span class="nav-number">3.1.</span> <span class="nav-text">dict定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%94%AE%E5%80%BC%E5%AF%B9%E7%B1%BB%E5%9E%8B%E5%AE%9A%E4%B9%89"><span class="nav-number">3.2.</span> <span class="nav-text">键值对类型定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#dict%E6%A8%A1%E5%9E%8B%E4%B8%BB%E8%A6%81%E5%87%BD%E6%95%B0"><span class="nav-number">3.3.</span> <span class="nav-text">dict模型主要函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#lookup%EF%BC%88%E6%90%9C%E7%B4%A2%EF%BC%89"><span class="nav-number">3.3.1.</span> <span class="nav-text">lookup（搜索）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#insert%EF%BC%88%E6%8F%92%E5%85%A5%EF%BC%89"><span class="nav-number">3.3.2.</span> <span class="nav-text">insert（插入）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#resize%EF%BC%88%E8%B0%83%E6%95%B4%E9%95%BF%E5%BA%A6%EF%BC%89"><span class="nav-number">3.3.3.</span> <span class="nav-text">resize（调整长度）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#delete%EF%BC%88%E5%88%A0%E9%99%A4%EF%BC%89"><span class="nav-number">3.3.4.</span> <span class="nav-text">delete（删除）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9E%9A%E4%B8%BE%E5%87%BD%E6%95%B0"><span class="nav-number">3.4.</span> <span class="nav-text">枚举函数</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%80%BB%E7%BB%93-amp-QA"><span class="nav-number">4.</span> <span class="nav-text">总结&amp;QA</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Lron"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">Lron</p>
+  <div class="site-description" itemprop="description">Lron的个人博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">1</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/lgr745" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;lgr745" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/03/23/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="Lron">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Lron's blog">
+      <meta itemprop="description" content="Lron的个人博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="浅谈Python2字典枚举序列 | Lron's blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          浅谈Python2字典枚举序列
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2023-03-23 22:48:33" itemprop="dateCreated datePublished" datetime="2023-03-23T22:48:33+08:00">2023-03-23</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2023-04-08 01:08:48" itemprop="dateModified" datetime="2023-04-08T01:08:48+08:00">2023-04-08</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h1 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h1><p>本月在项目中遇到枚举Python字典的需求。使用上发现枚举字典时并不是按照插入顺序进行排序的，并且在不同字典内，枚举顺序都可能不一致：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">d = &#123;&#125;</span><br><span class="line">d[<span class="number">1</span>] = <span class="number">1</span></span><br><span class="line">d[<span class="number">0</span>] = <span class="number">1</span></span><br><span class="line">d.keys()  <span class="comment"># 输出为:[0, 1]</span></span><br></pre></td></tr></table></figure>
+
+<p>这与Python3的规则完全不一致。我调查项目中使用Python版本是2.7.18，与Python3有本质上的不同。我通过几段代码，发现Python2中的字典枚举规则比想象中复杂：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">d = &#123;&#125;</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">8</span>):</span><br><span class="line">	d[i] = <span class="number">1</span></span><br><span class="line">d.keys()  <span class="comment"># 输出为:[0, 1, 2, 3, 4, 5, 6, 7]</span></span><br><span class="line"></span><br><span class="line">d = &#123;&#125;</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">7</span>,-<span class="number">1</span>,-<span class="number">1</span>):</span><br><span class="line">    d[i] = <span class="number">1</span></span><br><span class="line">d.keys()  <span class="comment"># 输出为:[0, 1, 2, 3, 4, 5, 6, 7]</span></span><br><span class="line"><span class="comment"># 与插入顺序无关系</span></span><br><span class="line"></span><br><span class="line">d = &#123;&#125;</span><br><span class="line">d[<span class="number">9</span>] = <span class="number">1</span></span><br><span class="line">d[<span class="number">1</span>] = <span class="number">1</span></span><br><span class="line">d.keys()  <span class="comment"># 输出为:[9, 1]</span></span><br><span class="line"></span><br><span class="line">d = &#123;&#125;</span><br><span class="line">d[<span class="number">1</span>] = <span class="number">1</span></span><br><span class="line">d[<span class="number">9</span>] = <span class="number">1</span></span><br><span class="line">d.keys()  <span class="comment"># 输出为:[1, 9]</span></span><br><span class="line"><span class="comment"># 与插入顺序有关系</span></span><br></pre></td></tr></table></figure>
+
+<p>输出结果表达在不同代码逻辑中，产生的keys结果可能与插入顺序有关，又与插入顺序无关。为了解答这个问题，本文将对Python2底层字典的设计窥探一二，更加了解更底层知识对上层业务进行解惑。</p>
+<h1 id="环境配置"><a href="#环境配置" class="headerlink" title="环境配置"></a>环境配置</h1><ul>
+<li>Python 2.7.18源码</li>
+<li>Python解释器使用C语言编译</li>
+<li>Visual Studio Community 2017 15.9.17</li>
+</ul>
+<h1 id="dict模型"><a href="#dict模型" class="headerlink" title="dict模型"></a>dict模型</h1><h2 id="dict定义"><a href="#dict定义" class="headerlink" title="dict定义"></a>dict定义</h2><p>在CPython中，业务上使用dict对应源码定义是PyDictObject，具体如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">[dictobject.h]</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PyDict_MINSIZE 8</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> _<span class="title">dictobject</span> <span class="title">PyDictObject</span>;</span>  <span class="comment">/* 将结构体_dictobject设置别名为PyDictObject */</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">dictobject</span> &#123;</span></span><br><span class="line">    PyObject_HEAD  <span class="comment">/* 宏定义PyObject头部：通用PyObject定义，与dict解析无关 */</span></span><br><span class="line">    Py_ssize_t ma_fill;  <span class="comment">/* 哈希表中被使用的键值对数量：Acitve态键值对数量+Dummy态键值对数量 */</span></span><br><span class="line">    Py_ssize_t ma_used;  <span class="comment">/* Active态键值对数量 */</span></span><br><span class="line"></span><br><span class="line">    Py_ssize_t ma_mask;  <span class="comment">/* 哈希表映射值=哈希表长度-1，哈希表长度必定为2的幂 */</span></span><br><span class="line"></span><br><span class="line">    PyDictEntry *ma_table;  <span class="comment">/* 哈希表结构指针，指向键值对类型的一维数组 */</span></span><br><span class="line">    PyDictEntry *(*ma_lookup)(PyDictObject *mp, PyObject *key, <span class="type">long</span> hash);  <span class="comment">/* 哈希表搜索函数，可由运行环境重定义 */</span></span><br><span class="line">    PyDictEntry ma_smalltable[PyDict_MINSIZE];  <span class="comment">/* 是一个长度为8的数组，默认为dict最小容量 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>通过对dict底层定义解析，我们可以得出结论：dict底层数据结构是一个键值对类型的一维数组，而<strong>ma_table</strong>就是指向这个一维数组的指针。那么他指向的内存块是在哪呢？我发现在<strong>ma_table</strong>上方注释为我们详细说明其内存块逻辑：</p>
+<blockquote>
+<p>ma_table points to ma_smalltable for small tables, else to additional malloc’ed memory.  ma_table is never NULL!  This rule saves repeated runtime null-tests in the workhorse getitem and setitem calls.</p>
+</blockquote>
+<p>通过该注释说明，我们可以知道如果dict中的元素个数少的情况时ma_table指向<strong>ma_smalltable</strong>，否则将会指向由malloc申请到的额外内存。保证<strong>ma_table</strong>必定不可能为NULL指针，具体指向内存块是由运行环境中<strong>getitem</strong>与<strong>setitem</strong>的调用决定的。所以我们可以总结为下图：</p>
+<p><img src="/../images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230326150952739.png" alt="image-20230326150952739"></p>
+<p>以上我们分析后，了解到Python底层为了优化“小”dict的内存，默认在dict中<strong>ma_table</strong>使用<strong>ma_smalltable</strong>属性，只有出现“大”dict时，才会申请额外内存区域。是一种底层数据结构内存优化的措施。</p>
+<p>那么<strong>ma_mask</strong>的作用是什么，<strong>Active态</strong>、<strong>Dummy态</strong>的定义 ，还有<strong>lookup</strong>函数内部运作方式，我们在后面配合其他内容再一起介绍。</p>
+<h2 id="键值对类型定义"><a href="#键值对类型定义" class="headerlink" title="键值对类型定义"></a>键值对类型定义</h2><p>在了解dict定义后，我们需要进一步了解哈希表结构内部存储的键值对（key,value）是什么。它对应的源码定义是PyDictEntry，具体如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[dictobject.h]</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">    Py_ssize_t me_hash;  <span class="comment">/* key对象的Hash值，缓存后不用重复计算 */</span></span><br><span class="line">    PyObject *me_key;  <span class="comment">/* 键值对中key对象PyObject指针 */</span></span><br><span class="line">    PyObject *me_value;  <span class="comment">/* 键值对中value对象PyObject指针 */</span></span><br><span class="line">&#125; PyDictEntry;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以看到键值对定义比较简单，本质上是键值对（key,value）的对象结构体。其中<strong>me_hash</strong>属性是<strong>me_key</strong>对象的Hash值缓存，用于减少<strong>me_key</strong>对象的哈希值重复计算。在PyDictEntry上定义能看到对于键值对状态的定义：</p>
+<blockquote>
+<p>There are three kinds of slots in the table:</p>
+<ol>
+<li><p>Unused.  me_key &#x3D;&#x3D; me_value &#x3D;&#x3D; NULL Does not hold an active (key, value) pair now and never did.  Unused can transition to Active upon key insertion.  This is the only case in which me_key is NULL, and is each slot’s initial state.</p>
+</li>
+<li><p>Active.  me_key !&#x3D; NULL and me_key !&#x3D; dummy and me_value !&#x3D; NULL Holds an active (key, value) pair.  Active can transition to Dummy upon key deletion.  This is the only case in which me_value !&#x3D; NULL.</p>
+</li>
+<li><p>Dummy.  me_key &#x3D;&#x3D; dummy and me_value &#x3D;&#x3D; NULL Previously held an active (key, value) pair, but that was deleted and an active pair has not yet overwritten the slot.  Dummy can transition to Active upon key insertion.  Dummy slots cannot be made Unused again (cannot have me_key set to NULL), else the probe sequence in case of collision would have no way to know they were once active.</p>
+</li>
+</ol>
+</blockquote>
+<p>可以看到键值对中有3种状态：</p>
+<ol>
+<li>Unused态。此时<strong>me_key&#x3D;me_value&#x3D;NULL</strong>，属于从未使用过的键值对类型</li>
+<li>Active态。此时<strong>me_key!&#x3D;NULL，me_key!&#x3D;dummy，且me_value!&#x3D;NULL</strong>，属于正常使用的键值对类型</li>
+<li>Dummy态。此时<strong>me_key&#x3D;dummy，me_value&#x3D;NULL</strong>，属于激活态中被删除时，用于保留探针链时的惰性删除状态。dummy状态不会再一次转成Unused态，否则探针链将会断裂</li>
+</ol>
+<p>也就是执行插入操作时，如果键值对状态是Unused态，可以将状态转为Active态。如果键值对状态是Dummy态，可以将状态转为Active态。如果需要执行删除操作时，那么键值对一定为Active态，可以将状态转为Dummy态。所以我们可以总结为下图：</p>
+<p><img src="/../images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230326163648899.png" alt="image-20230326163648899"></p>
+<p>通过对这三种状态的转换，可以了解到Dummy态是不会转成Unused态的。其Dummy存在的含义是为了保留其探针链活动是可以正常搜索的。那么<strong>探针链</strong>是什么，为什么Dummy态不存在则无法保留探针链呢，让我们进入dict模型搜索函数一探究竟。</p>
+<h2 id="dict模型主要函数"><a href="#dict模型主要函数" class="headerlink" title="dict模型主要函数"></a>dict模型主要函数</h2><h3 id="lookup（搜索）"><a href="#lookup（搜索）" class="headerlink" title="lookup（搜索）"></a>lookup（搜索）</h3><p>在dict定义中可以知道<strong>ma_lookup</strong>是dict模型的搜索函数，会指向的函数可能为<strong>lookdict_string</strong>或<strong>lookdict</strong>。通过代码注释，可以了解到两个函数的不同点：</p>
+<blockquote>
+<p>lookdict() is general-purpose, and may return NULL if (and only if) a comparison raises an exception (this was new in Python 2.5).lookdict_string() below is specialized to string keys, comparison of which can never raise an exception; that function can never return NULL.  For both, when the key isn’t found a PyDictEntry* is returned for which the me_value field is NULL; this is the slot in the dict at which the key would have been found, and the caller can (if it wishes) add the &lt;key, value&gt; pair to the returned PyDictEntry*.</p>
+</blockquote>
+<p>可以了解到<strong>lookdict_string</strong>是专门用于字符串键的情况，更通用的函数是<strong>lookdict</strong>。我们目的是了解键值对的搜索过程，所以我们针对通用情况做解析，为了更简化源码过程，将会对非核心逻辑进行省略：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line">[dictobject.c]</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PERTURB_SHIFT 5</span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> PyObject *dummy = <span class="literal">NULL</span>;</span><br><span class="line">PyObject *</span><br><span class="line"><span class="title function_">PyDict_New</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">register</span> PyDictObject *mp;</span><br><span class="line">    <span class="keyword">if</span> (dummy == <span class="literal">NULL</span>) &#123;  <span class="comment">/* 惰性初始化，在首个dict构建时，构建一个全局使用的dummy字符串 */</span></span><br><span class="line">        dummy = PyString_FromString(<span class="string">&quot;&lt;dummy key&gt;&quot;</span>);</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 发生错误返回-1;if v op w为真返回1，为假返回0 */</span></span><br><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">PyObject_RichCompareBool</span><span class="params">(PyObject *v, PyObject *w, <span class="type">int</span> op)</span></span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> PyDictEntry *</span><br><span class="line"><span class="title function_">lookdict</span><span class="params">(PyDictObject *mp, PyObject *key, <span class="keyword">register</span> <span class="type">long</span> hash)</span>  <span class="comment">/* mp是搜索的dict对象，key是搜索键对象，hash是key对象的Hash值 */</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">register</span> <span class="type">size_t</span> i;  <span class="comment">/* 局部变量定义 */</span></span><br><span class="line">    <span class="keyword">register</span> <span class="type">size_t</span> perturb;  <span class="comment">/* 局部变量定义 */</span></span><br><span class="line">    <span class="keyword">register</span> PyDictEntry *freeslot;  <span class="comment">/* 搜索过程中，首个Dummy态的键值对 */</span></span><br><span class="line">    <span class="keyword">register</span> <span class="type">size_t</span> mask = (<span class="type">size_t</span>)mp-&gt;ma_mask;  <span class="comment">/* 局部变量mask，从搜索dict对象mp中取出 */</span></span><br><span class="line">    PyDictEntry *ep0 = mp-&gt;ma_table;  <span class="comment">/* ma_table就是哈希表结构指针，指向一维数组 */</span></span><br><span class="line">    <span class="keyword">register</span> PyDictEntry *ep;  <span class="comment">/* 局部变量定义 */</span></span><br><span class="line">    <span class="keyword">register</span> <span class="type">int</span> cmp;  <span class="comment">/* 局部变量定义 */</span></span><br><span class="line">    PyObject *startkey;  <span class="comment">/* 局部变量定义 */</span></span><br><span class="line"></span><br><span class="line">    i = (<span class="type">size_t</span>)hash &amp; mask;  <span class="comment">/* mask是2的幂-1的值，&amp;操作的含义就是为了将hash值映射到mask内的范围 */</span></span><br><span class="line">    ep = &amp;ep0[i];  <span class="comment">/* 探针链首个键值对 */</span></span><br><span class="line">    <span class="comment">/*----------------------------------&lt;&lt;首个键值对处理-开始&gt;&gt;----------------------------------*/</span></span><br><span class="line">    <span class="keyword">if</span> (ep-&gt;me_key == <span class="literal">NULL</span> || ep-&gt;me_key == key)  <span class="comment">/* 如果是Unused态，或者是引用相等，则搜索结束 */</span></span><br><span class="line">        <span class="keyword">return</span> ep;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (ep-&gt;me_key == dummy)  <span class="comment">/* 处于Dummy态，设置freeslot，即将进入探针链搜索下个元素 */</span></span><br><span class="line">        freeslot = ep;</span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (ep-&gt;me_hash == hash) &#123;</span><br><span class="line">            startkey = ep-&gt;me_key;</span><br><span class="line">            ...</span><br><span class="line">            cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);  <span class="comment">/* 对ep-&gt;me_key和key做值相等对比 */</span></span><br><span class="line">            ...</span><br><span class="line">            <span class="keyword">if</span> (cmp &lt; <span class="number">0</span>)  <span class="comment">/* 值相等异常 */</span></span><br><span class="line">                <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">            <span class="keyword">if</span> (ep0 == mp-&gt;ma_table &amp;&amp; ep-&gt;me_key == startkey) &#123;  <span class="comment">/* 普通dict必然会判断为true */</span></span><br><span class="line">                <span class="keyword">if</span> (cmp &gt; <span class="number">0</span>)</span><br><span class="line">                    <span class="keyword">return</span> ep;  <span class="comment">/* 值相等，则搜索结束。不等时初始化freeslot，并且即将进入探针链搜索下个元素 */</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span> &#123;  <span class="comment">/* 异常的情况，重复进行搜索。理论上不会进入 */</span></span><br><span class="line">                <span class="keyword">return</span> lookdict(mp, key, hash);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        freeslot = <span class="literal">NULL</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/*----------------------------------&lt;&lt;首个键值对处理-结束&gt;&gt;----------------------------------*/</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 探针链搜索核心代码，其中PERTURB_SHIFT=5 */</span></span><br><span class="line">    <span class="keyword">for</span> (perturb = hash; ; perturb &gt;&gt;= PERTURB_SHIFT) &#123;</span><br><span class="line">        i = (i &lt;&lt; <span class="number">2</span>) + i + perturb + <span class="number">1</span>;  <span class="comment">/* 探针函数计算出下个探索值 */</span></span><br><span class="line">        ep = &amp;ep0[i &amp; mask];  <span class="comment">/* 将探索值映射至mask范围内，并取出对应键值对 */</span></span><br><span class="line">        <span class="keyword">if</span> (ep-&gt;me_key == <span class="literal">NULL</span>)  <span class="comment">/* 键值对是Unused态，则搜索结束。若有首个Dummy态键值对则直接返回，若无返回Unused态键值对 */</span></span><br><span class="line">            <span class="keyword">return</span> freeslot == <span class="literal">NULL</span> ? ep : freeslot;</span><br><span class="line">        <span class="keyword">if</span> (ep-&gt;me_key == key)  <span class="comment">/* 引用相等，探索结束 */</span></span><br><span class="line">            <span class="keyword">return</span> ep;</span><br><span class="line">        <span class="keyword">if</span> (ep-&gt;me_hash == hash &amp;&amp; ep-&gt;me_key != dummy) &#123;  <span class="comment">/* 探针链首个键值对处理部分相同，可以参考以上代码 */</span></span><br><span class="line">            startkey = ep-&gt;me_key;</span><br><span class="line">            ...</span><br><span class="line">            cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);</span><br><span class="line">            ...</span><br><span class="line">            <span class="keyword">if</span> (cmp &lt; <span class="number">0</span>)</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">            <span class="keyword">if</span> (ep0 == mp-&gt;ma_table &amp;&amp; ep-&gt;me_key == startkey) &#123;</span><br><span class="line">                <span class="keyword">if</span> (cmp &gt; <span class="number">0</span>)</span><br><span class="line">                    <span class="keyword">return</span> ep;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> lookdict(mp, key, hash);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (ep-&gt;me_key == dummy &amp;&amp; freeslot == <span class="literal">NULL</span>)  <span class="comment">/* freeslot为首个dummy态键值对 */</span></span><br><span class="line">            freeslot = ep;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现探针函数中，探针链的搜索过程是：</p>
+<ol>
+<li>首个键值对地址是通过hash &amp; mask计算得出的</li>
+<li>后续探针链的键值对地址是通过探针函数计算得出的，具体细节在源代码中探针链搜索核心代码的循环内</li>
+</ol>
+<p>但我们可以总结为以下公式：<br>$$<br>ep_1 &#x3D; hash \bigotimes mask<br>$$</p>
+<p>$$<br>ep_i &#x3D; (ep_{i-1} \times 5 + 1 + \frac{hash}{32^{i-2}}) \bigotimes mask,i \ge 2<br>$$</p>
+<p>ep为键值对地址，hash为搜索key的哈希值，mask则是dict模型哈希表映射值，$\bigotimes$是同位与操作即&amp;操作。</p>
+<p>我们以最小dict模型为例，假如dict模型已经被插入了key&#x3D;300,289的情况，查询308时模拟哈希冲突链的搜索如下图：</p>
+<p><font color='red'><strong>特殊说明：Python2中小int类型哈希值是自己，所以300,289,308对应的哈希值就是300,289,308</strong></font></p>
+<p><img src="/../images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230402161816902.png" alt="image-20230402161816902"></p>
+<p>可以看到这个过程，<strong>Python2</strong>的底层dict解决哈希冲突使用的是<strong>开放寻址法</strong>。那么键值对是怎么插入到dict模型之中，哈希表是怎么扩容成“大”dict内，我们继续解析插入函数。</p>
+<h3 id="insert（插入）"><a href="#insert（插入）" class="headerlink" title="insert（插入）"></a>insert（插入）</h3><p>在底层代码中，dict插入函数是<strong>PyDict_SetItem</strong>接口，链接上业务层的**__setitem__**接口，将会对非核心逻辑进行省略后源码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line">[dictobject.c]</span><br><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">PyDict_SetItem</span><span class="params">(<span class="keyword">register</span> PyObject *op, PyObject *key, PyObject *value)</span>  <span class="comment">/* op是插入的dict对象，(key,value)是插入键值对 */</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">register</span> <span class="type">long</span> hash;  <span class="comment">/* key对象的Hash值 */</span></span><br><span class="line">	...</span><br><span class="line">    <span class="keyword">if</span> (PyString_CheckExact(key)) &#123;  <span class="comment">/* 检查是否是string类型，对其哈希值优先获取缓存值 */</span></span><br><span class="line">        hash = ((PyStringObject *)key)-&gt;ob_shash;</span><br><span class="line">        <span class="keyword">if</span> (hash == <span class="number">-1</span>)</span><br><span class="line">            hash = PyObject_Hash(key);  <span class="comment">/* 计算key对象的哈希值 */</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">        hash = PyObject_Hash(key);  <span class="comment">/* 计算key对象的哈希值 */</span></span><br><span class="line">        <span class="keyword">if</span> (hash == <span class="number">-1</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> dict_set_item_by_hash_or_entry(op, key, hash, <span class="literal">NULL</span>, value);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">dict_set_item_by_hash_or_entry</span><span class="params">(<span class="keyword">register</span> PyObject *op, PyObject *key,</span></span><br><span class="line"><span class="params">                               <span class="type">long</span> hash, PyDictEntry *ep, PyObject *value)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">register</span> PyDictObject *mp;</span><br><span class="line">    <span class="keyword">register</span> Py_ssize_t n_used;</span><br><span class="line"></span><br><span class="line">    mp = (PyDictObject *)op;</span><br><span class="line">    ...</span><br><span class="line">    n_used = mp-&gt;ma_used;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">if</span> (ep == <span class="literal">NULL</span>) &#123;  <span class="comment">/* 插入ep=NULL,所以进入该分支，核心是insertdict函数 */</span></span><br><span class="line">        <span class="keyword">if</span> (insertdict(mp, key, hash, value) != <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (insertdict_by_entry(mp, key, hash, ep, value) != <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* 以下为扩容代码，后续我们再分析 */</span></span><br><span class="line">    <span class="keyword">if</span> (!(mp-&gt;ma_used &gt; n_used &amp;&amp; mp-&gt;ma_fill*<span class="number">3</span> &gt;= (mp-&gt;ma_mask+<span class="number">1</span>)*<span class="number">2</span>))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">return</span> dictresize(mp, (mp-&gt;ma_used &gt; <span class="number">50000</span> ? <span class="number">2</span> : <span class="number">4</span>) * mp-&gt;ma_used);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">insertdict</span><span class="params">(<span class="keyword">register</span> PyDictObject *mp, PyObject *key, <span class="type">long</span> hash, PyObject *value)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">register</span> PyDictEntry *ep;</span><br><span class="line">    ...</span><br><span class="line">    ep = mp-&gt;ma_lookup(mp, key, hash);  <span class="comment">/* 搜索key对象哈希值可用的键值对 */</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">return</span> insertdict_by_entry(mp, key, hash, ep, value);  <span class="comment">/* 对搜索到的键值对进行插入设置 */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">insertdict_by_entry</span><span class="params">(<span class="keyword">register</span> PyDictObject *mp, PyObject *key, <span class="type">long</span> hash,</span></span><br><span class="line"><span class="params">                    PyDictEntry *ep, PyObject *value)</span></span><br><span class="line">&#123;</span><br><span class="line">    PyObject *old_value;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">if</span> (ep-&gt;me_value != <span class="literal">NULL</span>) &#123;  <span class="comment">/* 准备设置的键值对是Active态 */</span></span><br><span class="line">        old_value = ep-&gt;me_value;</span><br><span class="line">        ep-&gt;me_value = value;  <span class="comment">/* 仅需设置value */</span></span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;  <span class="comment">/* 准备设置的键值对是Unused、Dummy态。该键值对将会转成Active态 */</span></span><br><span class="line">        <span class="keyword">if</span> (ep-&gt;me_key == <span class="literal">NULL</span>)  <span class="comment">/* 键值对是Unused态 */</span></span><br><span class="line">            mp-&gt;ma_fill++;  <span class="comment">/* dict模型内Unused态数量减少，Active态增加，所fill属性变化 */</span></span><br><span class="line">        <span class="keyword">else</span> &#123;  <span class="comment">/* 该键值对是Dummy态 */</span></span><br><span class="line">            ...</span><br><span class="line">        &#125;</span><br><span class="line">        ep-&gt;me_key = key;  <span class="comment">/* 设置key */</span></span><br><span class="line">        ep-&gt;me_hash = (Py_ssize_t)hash;  <span class="comment">/* 缓存hash值 */</span></span><br><span class="line">        ep-&gt;me_value = value;  <span class="comment">/* 设置value */</span></span><br><span class="line">        mp-&gt;ma_used++;  <span class="comment">/* dict模型内Active态数量增加，所以used属性变化 */</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们以最小dict模型为例，插入键值对（key&#x3D;300,value&#x3D;1）时，模拟插入表示图如下：</p>
+<p><img src="/../images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230403233854570.png" alt="image-20230403233854570"></p>
+<h3 id="resize（调整长度）"><a href="#resize（调整长度）" class="headerlink" title="resize（调整长度）"></a>resize（调整长度）</h3><p>在插入代码中<strong>dict_set_item_by_hash_or_entry</strong>接口有一段代码是用于dict模型哈希表扩容使用的，实际接口为<strong>dictresize</strong>，其代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line">[dictobject.c]</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> PyDict_MINSIZE 8</span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">dict_set_item_by_hash_or_entry</span><span class="params">(<span class="keyword">register</span> PyObject *op, PyObject *key,</span></span><br><span class="line"><span class="params">                               <span class="type">long</span> hash, PyDictEntry *ep, PyObject *value)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">register</span> PyDictObject *mp;</span><br><span class="line">    <span class="keyword">register</span> Py_ssize_t n_used;</span><br><span class="line">    mp = (PyDictObject *)op;</span><br><span class="line">    n_used = mp-&gt;ma_used;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">/* 代码段可以拆分成两段，其中一段是mp-&gt;ma_used &gt; n_used，n_used是增加元素之前的激活态数量，也就是保证是有新增激活态的情况</span></span><br><span class="line"><span class="comment">     * 另一段是mp-&gt;ma_fill*3 &gt;= (mp-&gt;ma_mask+1)*2，可以发现当Acitve态键值对数量+Dummy态键值对数量超过哈希表2/3后，将会进行扩容</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">if</span> (!(mp-&gt;ma_used &gt; n_used &amp;&amp; mp-&gt;ma_fill*<span class="number">3</span> &gt;= (mp-&gt;ma_mask+<span class="number">1</span>)*<span class="number">2</span>))</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    <span class="comment">/* 通过dict内的Active态数量来决定扩展2倍还是4倍长度，扩展2倍时是为了“大”dict省内存空间 */</span></span><br><span class="line">    <span class="keyword">return</span> dictresize(mp, (mp-&gt;ma_used &gt; <span class="number">50000</span> ? <span class="number">2</span> : <span class="number">4</span>) * mp-&gt;ma_used);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">dictresize</span><span class="params">(PyDictObject *mp, Py_ssize_t minused)</span>  <span class="comment">/* mp是要扩容的dict，至少要扩容&gt;minused长度的哈希表 */</span></span><br><span class="line">&#123;</span><br><span class="line">    Py_ssize_t newsize;</span><br><span class="line">    PyDictEntry *oldtable, *newtable, *ep;</span><br><span class="line">    Py_ssize_t i;</span><br><span class="line">    PyDictEntry small_copy[PyDict_MINSIZE];</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 从8开始，搜索出首个大于minused的2的幂数，作为扩容的最终长度 */</span></span><br><span class="line">    <span class="keyword">for</span> (newsize = PyDict_MINSIZE;</span><br><span class="line">         newsize &lt;= minused &amp;&amp; newsize &gt; <span class="number">0</span>;</span><br><span class="line">         newsize &lt;&lt;= <span class="number">1</span>)</span><br><span class="line">        ;</span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    oldtable = mp-&gt;ma_table;</span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (newsize == PyDict_MINSIZE) &#123;</span><br><span class="line">        <span class="comment">/* 假如扩展尺寸为“小”dict，可以将dict模型ma_table重新指向smalltable */</span></span><br><span class="line">        newtable = mp-&gt;ma_smalltable;</span><br><span class="line">        <span class="keyword">if</span> (newtable == oldtable) &#123;</span><br><span class="line">            ...</span><br><span class="line">            <span class="comment">/* 重新初始化ma_table，即smalltable，准备重新插入 */</span></span><br><span class="line">            <span class="built_in">memcpy</span>(small_copy, oldtable, <span class="keyword">sizeof</span>(small_copy));</span><br><span class="line">            oldtable = small_copy;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">        newtable = PyMem_NEW(PyDictEntry, newsize);  <span class="comment">/* 申请最终长度的哈希表 */</span></span><br><span class="line">		...</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">/* 重设dict模型数据 */</span></span><br><span class="line">    mp-&gt;ma_table = newtable;</span><br><span class="line">    mp-&gt;ma_mask = newsize - <span class="number">1</span>;</span><br><span class="line">    <span class="built_in">memset</span>(newtable, <span class="number">0</span>, <span class="keyword">sizeof</span>(PyDictEntry) * newsize);</span><br><span class="line">    mp-&gt;ma_used = <span class="number">0</span>;</span><br><span class="line">    i = mp-&gt;ma_fill;</span><br><span class="line">    mp-&gt;ma_fill = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 从0开始，枚举oldtable进行插入 */</span></span><br><span class="line">    <span class="keyword">for</span> (ep = oldtable; i &gt; <span class="number">0</span>; ep++) &#123;</span><br><span class="line">        <span class="keyword">if</span> (ep-&gt;me_value != <span class="literal">NULL</span>) &#123;  <span class="comment">/* 激活态键值对 */</span></span><br><span class="line">            --i;</span><br><span class="line">            <span class="comment">/* 插入到dict模型内 */</span></span><br><span class="line">            insertdict_clean(mp, ep-&gt;me_key, (<span class="type">long</span>)ep-&gt;me_hash,</span><br><span class="line">                             ep-&gt;me_value);</span><br><span class="line">        &#125;</span><br><span class="line">        ...</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>通过调整哈希表长度的代码，我们可以认识到在扩容哈希表长度时的主要过程图如下：</p>
+<p><img src="/../images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230406235107637.png" alt="image-20230406235107637"></p>
+<p>调整长度本质上主要过程中的几个具体步骤为：</p>
+<ol>
+<li>搜索出一个合适的newsize</li>
+<li>生成最新的哈希表</li>
+<li>插入旧哈希表中所有Active态的键值对</li>
+</ol>
+<h3 id="delete（删除）"><a href="#delete（删除）" class="headerlink" title="delete（删除）"></a>delete（删除）</h3><p>既然都分析了插入函数，那么怎么能少了dict模型的删除函数。删除键值对是<strong>PyDict_DelItem</strong>接口，链接上业务层的**__delitem__**接口，将会对非核心逻辑进行省略后源码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">[dictobject.c]</span><br><span class="line"><span class="type">int</span></span><br><span class="line"><span class="title function_">PyDict_DelItem</span><span class="params">(PyObject *op, PyObject *key)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">register</span> PyDictObject *mp;</span><br><span class="line">    <span class="keyword">register</span> <span class="type">long</span> hash;</span><br><span class="line">    <span class="keyword">register</span> PyDictEntry *ep;</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">if</span> (!PyString_CheckExact(key) ||</span><br><span class="line">        (hash = ((PyStringObject *) key)-&gt;ob_shash) == <span class="number">-1</span>) &#123;</span><br><span class="line">        hash = PyObject_Hash(key);  <span class="comment">/* 计算key哈希值 */</span></span><br><span class="line">        <span class="keyword">if</span> (hash == <span class="number">-1</span>)</span><br><span class="line">            <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    mp = (PyDictObject *)op;</span><br><span class="line">    ep = (mp-&gt;ma_lookup)(mp, key, hash);  <span class="comment">/* 搜索出对应的键值对 */</span></span><br><span class="line">    <span class="keyword">if</span> (ep == <span class="literal">NULL</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    <span class="keyword">if</span> (ep-&gt;me_value == <span class="literal">NULL</span>) &#123;  <span class="comment">/* 如果不是Active态则对业务层报错 */</span></span><br><span class="line">        set_key_error(key);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> delitem_common(mp, ep);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">int</span></span><br><span class="line"><span class="title function_">delitem_common</span><span class="params">(PyDictObject *mp, PyDictEntry *ep)</span></span><br><span class="line">&#123;</span><br><span class="line">    PyObject *old_value, *old_key;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 将键值对状态改为Dummy态，并且调整dict模型属性 */</span></span><br><span class="line">    old_key = ep-&gt;me_key;</span><br><span class="line">    ...</span><br><span class="line">    ep-&gt;me_key = dummy;</span><br><span class="line">    old_value = ep-&gt;me_value;</span><br><span class="line">    ep-&gt;me_value = <span class="literal">NULL</span>;</span><br><span class="line">    mp-&gt;ma_used--;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>删除代码比较简单，我们以最小dict模型为例且已插入键值对（key&#x3D;300,val&#x3D;1），删除键值对（key&#x3D;300）时，模拟表示图如下：</p>
+<p><img src="/../images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230407011522988.png" alt="image-20230407011522988"></p>
+<p>以上已经将dict模型的所有主要函数已经分析完毕，接着我们回到初始问题。dict模型的枚举序列有什么规律呢，可以进入下一章继续研究源码。</p>
+<h2 id="枚举函数"><a href="#枚举函数" class="headerlink" title="枚举函数"></a>枚举函数</h2><p>dict模型枚举函数有三种（keys,values,items），对应的源码<strong>dict_keys</strong>，<strong>dict_values</strong>，<strong>dict_items</strong>，简化源码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line">[dictobject.c]</span><br><span class="line"><span class="type">static</span> PyObject *</span><br><span class="line"><span class="title function_">dict_keys</span><span class="params">(<span class="keyword">register</span> PyDictObject *mp)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">register</span> PyObject *v;</span><br><span class="line">    <span class="keyword">register</span> Py_ssize_t i, j;</span><br><span class="line">    PyDictEntry *ep;</span><br><span class="line">    Py_ssize_t mask, n;</span><br><span class="line"></span><br><span class="line">    n = mp-&gt;ma_used;</span><br><span class="line">    v = PyList_New(n);  <span class="comment">/* 构建长度为Active态数量的List */</span></span><br><span class="line">    ...</span><br><span class="line">    ep = mp-&gt;ma_table;</span><br><span class="line">    mask = mp-&gt;ma_mask;</span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>, j = <span class="number">0</span>; i &lt;= mask; i++) &#123;  <span class="comment">/* 从0开始枚举哈希表 */</span></span><br><span class="line">        <span class="keyword">if</span> (ep[i].me_value != <span class="literal">NULL</span>) &#123;  <span class="comment">/* Active态键值对 */</span></span><br><span class="line">            PyObject *key = ep[i].me_key;</span><br><span class="line">            ...</span><br><span class="line">            PyList_SET_ITEM(v, j, key);  <span class="comment">/* 插入key到List里 */</span></span><br><span class="line">            j++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">return</span> v;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> PyObject *</span><br><span class="line"><span class="title function_">dict_values</span><span class="params">(<span class="keyword">register</span> PyDictObject *mp)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">register</span> PyObject *v;</span><br><span class="line">    <span class="keyword">register</span> Py_ssize_t i, j;</span><br><span class="line">    PyDictEntry *ep;</span><br><span class="line">    Py_ssize_t mask, n;</span><br><span class="line"></span><br><span class="line">    n = mp-&gt;ma_used;</span><br><span class="line">    v = PyList_New(n);  <span class="comment">/* 构建长度为Active态数量的List */</span></span><br><span class="line">    ...</span><br><span class="line">    ep = mp-&gt;ma_table;</span><br><span class="line">    mask = mp-&gt;ma_mask;</span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>, j = <span class="number">0</span>; i &lt;= mask; i++) &#123;  <span class="comment">/* 从0开始枚举哈希表 */</span></span><br><span class="line">        <span class="keyword">if</span> (ep[i].me_value != <span class="literal">NULL</span>) &#123;  <span class="comment">/* Active态键值对 */</span></span><br><span class="line">            PyObject *value = ep[i].me_value;</span><br><span class="line">            ...</span><br><span class="line">            PyList_SET_ITEM(v, j, value);  <span class="comment">/* 插入value到List里 */</span></span><br><span class="line">            j++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">return</span> v;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> PyObject *</span><br><span class="line"><span class="title function_">dict_items</span><span class="params">(<span class="keyword">register</span> PyDictObject *mp)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">register</span> PyObject *v;</span><br><span class="line">    <span class="keyword">register</span> Py_ssize_t i, j, n;</span><br><span class="line">    Py_ssize_t mask;</span><br><span class="line">    PyObject *item, *key, *value;</span><br><span class="line">    PyDictEntry *ep;</span><br><span class="line"></span><br><span class="line">    n = mp-&gt;ma_used;</span><br><span class="line">    v = PyList_New(n);  <span class="comment">/* 构建长度为Active态数量的List */</span></span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; n; i++) &#123;</span><br><span class="line">        item = PyTuple_New(<span class="number">2</span>);  <span class="comment">/* 构建有两个元素的元组 */</span></span><br><span class="line">        ...</span><br><span class="line">        PyList_SET_ITEM(v, i, item);  <span class="comment">/* 插入建立好的元祖到List里 */</span></span><br><span class="line">    &#125;</span><br><span class="line">	</span><br><span class="line">    ep = mp-&gt;ma_table;</span><br><span class="line">    mask = mp-&gt;ma_mask;</span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>, j = <span class="number">0</span>; i &lt;= mask; i++) &#123;</span><br><span class="line">        <span class="keyword">if</span> ((value=ep[i].me_value) != <span class="literal">NULL</span>) &#123;  <span class="comment">/* Active态键值对 */</span></span><br><span class="line">            key = ep[i].me_key;</span><br><span class="line">            item = PyList_GET_ITEM(v, j);</span><br><span class="line">            ...</span><br><span class="line">            PyTuple_SET_ITEM(item, <span class="number">0</span>, key);  <span class="comment">/* 设置元组下标0的key对象 */</span></span><br><span class="line">            ...</span><br><span class="line">            PyTuple_SET_ITEM(item, <span class="number">1</span>, value);  <span class="comment">/* 设置元组下标1的value对象 */</span></span><br><span class="line">            j++;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">return</span> v;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以发现，三种枚举函数实现都比较简单。本质上都是从<strong>0开始枚举哈希表，将所有激活态键值对插入到对应容器中</strong>。用keys枚举函数举例，可以如下图所示：</p>
+<p><img src="/../images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230407013200236.png" alt="image-20230407013200236"></p>
+<h1 id="总结-amp-QA"><a href="#总结-amp-QA" class="headerlink" title="总结&amp;QA"></a>总结&amp;QA</h1><p>从以上分析我们可以得出，dict模型的序列枚举本质上是对dict的哈希表从0开始枚举所有的Active态键值对。</p>
+<p>那么分析一个样例，在最“小”dict上插入300,289,308后的keys枚举顺序，具体插入模拟如下图：</p>
+<p><font color="red"><strong>特殊说明：Python2中小int类型哈希值是自己，所以300,289,308对应的哈希值就是300,289,308</strong></font></p>
+<p><img src="/../images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230408000913328.png" alt="image-20230408000913328"></p>
+<p>通过Python2脚本代码模拟结果相同：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">dData = &#123;&#125;</span><br><span class="line">dData[<span class="number">300</span>] = <span class="number">1</span>  # <span class="number">300</span>的hash值=<span class="number">300</span></span><br><span class="line">dData[<span class="number">289</span>] = <span class="number">1</span>  # <span class="number">289</span>的hash值=<span class="number">289</span></span><br><span class="line">dData[<span class="number">308</span>] = <span class="number">1</span>  # <span class="number">308</span>的hash值=<span class="number">308</span></span><br><span class="line">dData.keys()  # 输出为:[<span class="number">289</span>, <span class="number">300</span>, <span class="number">308</span>]</span><br></pre></td></tr></table></figure>
+
+<p><strong>Q：公式中$\bigotimes$符号表示什么，为什么源代码注释中表示映射</strong></p>
+<p><strong>A：这个符号表示按位与，也就是Python脚本中的&amp;计算。我们通过文章发现，mask必定是2幂数-1，二进制表示为全是1的串，那么任意数与mask按位与结果是任意数的低位。拿18&amp;7举例，具体如下图：</strong></p>
+<p><img src="/../images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230408003333206.png" alt="image-20230408003333206"></p>
+<p><strong>Q：探针链中$ep_i &#x3D; (ep_{i-1} \times 5 + 1 + \frac{hash}{32^{i-2}}) \bigotimes mask,i \ge 2$公式是如何计算出来的</strong></p>
+<p><strong>A：具体可参考这段代码：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (perturb = hash; ; perturb &gt;&gt;= PERTURB_SHIFT) &#123;  <span class="comment">/* PERTURB_SHIFT = 5 */</span></span><br><span class="line">	i = (i &lt;&lt; <span class="number">2</span>) + i + perturb + <span class="number">1</span>;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>主要核心点有：i&lt;&lt;2，本质上是将i左移2位，等价于乘4。perturb&gt;&gt;5，本质上是将perturb 右移5位，等价于除32并向下取整。然后通过代码段推出来的</strong></p>
+<p><strong>Q：为什么删除键值对时，是将其状态设置为Dummy态，而不是改为Unused态</strong></p>
+<p><strong>A：是为了保持探针链的完整性，如果改为Unused态就无法搜索出Dummy态后面的元素。拿总结章节中的dict模型举例，此时哈希表中被插入顺序为300,289,308。接着在删除289后，搜索308的模拟过程如下：</strong></p>
+<p><img src="/../images/%E6%B5%85%E8%B0%88Python2%E5%AD%97%E5%85%B8%E6%9E%9A%E4%B8%BE%E5%BA%8F%E5%88%97/image-20230408005830821.png" alt="image-20230408005830821"></p>
+<p><strong>Q：dict的枚举会受到哪些因素影响</strong></p>
+<p><strong>A：源码本质是从0开始枚举的所有激活态，但因素比较多，经过整理后分析如下：</strong></p>
+<ul>
+<li>dict的哈希表长度，即mask值。会影响探针链计算过程中的索引位置</li>
+<li>插入到dict里的顺序。出现哈希冲突时，键值对的探针链搜索需要步数不同</li>
+<li>dict模型resize时，会清理所有的Dummy态，并且把Active态对新哈希表重新插入导致探针链索引</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Python/" rel="tag"># Python</a>
+              <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" rel="tag"># 数据结构</a>
+          </div>
+
+        
+
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+
+<div class="copyright">
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Lron</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+  
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>
