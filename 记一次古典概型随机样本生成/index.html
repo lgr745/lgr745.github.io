@@ -19,15 +19,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.14.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}}</script><script src="/js/config.js"></script>
 
-    <meta name="description" content="引言作为一个游戏研发工程师，平时承担游戏业务脚本的开发工作，但这类工作中往往会实现玩法中的随机、概率等具体业务问题。以往开发工作中目标只要实现业务目标即可，很少会关注落地后程序的分析。最近在一次代码优化业务中，发现一段运行效率低，并实现丑陋的代码。在和其他同事反复沟通优化过程中，探索到数学概率问题的解法，发现编码实践与数学理论的不同。 所以我将这次的优化思路总结成这篇文档，我相信未来会给你带来启发">
+    <meta name="description" content="引言作为一个游戏研发工程师，平时承担游戏业务脚本的开发工作，但这类工作中往往会实现玩法中的随机、概率等具体业务问题。以往开发工作中只要实现业务目标即可，很少会关注落地后程序的分析。最近在一次代码优化业务中，发现一段运行效率低，并实现丑陋的代码。在和其他同事反复沟通优化过程中，探索到数学概率问题的解法，发现编码实践与数学理论的不同。 所以我将这次的优化思路总结成这篇文档，我相信未来会给你带来启发和思">
 <meta property="og:type" content="article">
 <meta property="og:title" content="记一次古典概型随机样本生成">
 <meta property="og:url" content="http://example.com/%E8%AE%B0%E4%B8%80%E6%AC%A1%E5%8F%A4%E5%85%B8%E6%A6%82%E5%9E%8B%E9%9A%8F%E6%9C%BA%E6%A0%B7%E6%9C%AC%E7%94%9F%E6%88%90/index.html">
 <meta property="og:site_name" content="Lron&#39;s blog">
-<meta property="og:description" content="引言作为一个游戏研发工程师，平时承担游戏业务脚本的开发工作，但这类工作中往往会实现玩法中的随机、概率等具体业务问题。以往开发工作中目标只要实现业务目标即可，很少会关注落地后程序的分析。最近在一次代码优化业务中，发现一段运行效率低，并实现丑陋的代码。在和其他同事反复沟通优化过程中，探索到数学概率问题的解法，发现编码实践与数学理论的不同。 所以我将这次的优化思路总结成这篇文档，我相信未来会给你带来启发">
+<meta property="og:description" content="引言作为一个游戏研发工程师，平时承担游戏业务脚本的开发工作，但这类工作中往往会实现玩法中的随机、概率等具体业务问题。以往开发工作中只要实现业务目标即可，很少会关注落地后程序的分析。最近在一次代码优化业务中，发现一段运行效率低，并实现丑陋的代码。在和其他同事反复沟通优化过程中，探索到数学概率问题的解法，发现编码实践与数学理论的不同。 所以我将这次的优化思路总结成这篇文档，我相信未来会给你带来启发和思">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2023-06-20T17:42:17.000Z">
-<meta property="article:modified_time" content="2023-06-21T11:19:40.137Z">
+<meta property="article:modified_time" content="2023-06-21T13:56:20.653Z">
 <meta property="article:author" content="Lron">
 <meta property="article:tag" content="Python">
 <meta property="article:tag" content="算法">
@@ -207,7 +207,7 @@
       <span class="post-meta-item-text">发表于</span>
       
 
-      <time title="创建时间：2023-06-21 01:42:17 / 修改时间：19:19:40" itemprop="dateCreated datePublished" datetime="2023-06-21T01:42:17+08:00">2023-06-21</time>
+      <time title="创建时间：2023-06-21 01:42:17 / 修改时间：21:56:20" itemprop="dateCreated datePublished" datetime="2023-06-21T01:42:17+08:00">2023-06-21</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -229,7 +229,7 @@
     
     
     <div class="post-body" itemprop="articleBody">
-        <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>作为一个游戏研发工程师，平时承担游戏业务脚本的开发工作，但这类工作中往往会实现玩法中的随机、概率等具体业务问题。以往开发工作中目标只要实现业务目标即可，很少会关注落地后程序的分析。最近在一次代码优化业务中，发现一段运行效率低，并实现丑陋的代码。在和其他同事反复沟通优化过程中，探索到数学概率问题的解法，发现编码实践与数学理论的不同。</p>
+        <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>作为一个游戏研发工程师，平时承担游戏业务脚本的开发工作，但这类工作中往往会实现玩法中的随机、概率等具体业务问题。以往开发工作中只要实现业务目标即可，很少会关注落地后程序的分析。最近在一次代码优化业务中，发现一段运行效率低，并实现丑陋的代码。在和其他同事反复沟通优化过程中，探索到数学概率问题的解法，发现编码实践与数学理论的不同。</p>
 <p>所以我将这次的优化思路总结成这篇文档，我相信未来会给你带来启发和思路。</p>
 <h1 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h1><p>由于业务上实际问题不便透露，所以将具体问题抽象如下：</p>
 <blockquote>
@@ -272,13 +272,13 @@
 <blockquote>
 <p>从N个类型可放回从抽取K个组合种数问题转换成一种放球问题：将K个无区别的球随机放入到N个有区别的盒子里，盒子容量为无限，允许有空盒。</p>
 <p>在本次题目中，将从3种类型普通怪抽取4只出来问题转换为：有3个分别标为甲乙丙的盒子，将4个球随机放入这3个盒子中，组成情况的种数是多少？</p>
-<p>可以使用插板法来推导，假设将球用0来表示，4个球横空放在一条直线上表示为一串数字：0000。需要将这串数字分割成甲乙丙3份，那么仅需要在这串数字中插入2块挡板隔开，就可以分成甲乙丙3份。又因为允许出现空盒的情况，所以允许挡板可以插入同个位置。如果将挡板用1来表示，那么就可以得出我们目标是求由4个0，2个1组成的01串种数。例如将首个挡板左边为甲的个数，最后一个挡板右边为丙的个数，中间挡板为乙的个数，就可以分析出：</p>
+<p>可以使用插板法来求解，假设将球用0来表示，4个球同一空间上即为：0000。需要将这串数字分割成甲乙丙3份，那么仅需要在这串数字中插入2块挡板隔开，就可以分成甲乙丙3份。又因为允许出现空盒的情况，所以允许挡板可以插入同个位置。如果将挡板用1来表示，那么就可以得出我们目标是求由4个0，2个1组成的01串种数。例如将首个挡板左边为甲的个数，最后一个挡板右边为丙的个数，中间挡板为乙的个数，就可以分析出：</p>
 <p>001100：表示甲有2个球，乙没有球，丙2个球，即取出2只甲普通怪，2只丙普通怪</p>
 <p>000011：表示甲有4个球，乙没有球，丙没有球，即取出4只甲普通怪</p>
 <p>010001：表示甲有1个球，乙3个球，丙没有球，即取出1只甲普通怪，3只乙普通怪</p>
 <p>那么由4个0，2个1组成01串种数就变成一个排列组合问题，6个位置随机元素的排列再除去4个0的随机和2个1的随机重复的排列，即$\frac{A_6^6}{A_4^4A_2^2} &#x3D; 15$</p>
 </blockquote>
-<p>可以推导出通用公式如下：<br>$$<br>从N个类型可放回从抽取K个组合种数 &#x3D; \frac{(N-1+K)!}{(N-1)!K!} &#x3D; C_{N-1+K}^N<br>$$<br>所以从3个类型普通怪取出4只的情况计算出来为15，进行枚举如下：</p>
+<p>可以推导出通用公式如下：<br>$$<br>从N个类型可放回从抽取K个组合种数 &#x3D; \frac{(N-1+K)!}{(N-1)!K!} &#x3D; C_{N-1+K}^{K}<br>$$<br>所以从3个类型普通怪取出4只的情况计算出来为15，进行枚举如下：</p>
 <ul>
 <li>(甲,甲,甲,甲) (甲,甲,甲,乙) (甲,甲,甲,丙) (甲,甲,乙,乙) (甲,甲,乙,丙)</li>
 <li>(甲,甲,丙,丙) (甲,乙,乙,乙) (甲,乙,乙,丙) (甲,乙,丙,丙) (甲,丙,丙,丙)</li>
@@ -312,7 +312,7 @@
 <li>将物理输出，法术输出，辅助，甲乙丙六类怪物随机组设为一种骰子，称：全怪物骰子</li>
 <li>将甲乙丙三类怪物随机设为另一种骰子，称：普通怪物骰子</li>
 <li>先投掷全怪物骰子，随机出骰子对应的怪物类型。当骰出精英怪数量达到两只时，就换普通怪物骰子进行投掷</li>
-<li>连续抛5次骰子，如果没出现过物理输出或者法术输出精英怪。则将出现的首个辅助精英怪，或第一只怪物替换成物理输出或法术输出怪物</li>
+<li>连续抛5次骰子，如果没出现过物理输出或者法术输出精英怪，则将出现的首个辅助精英怪，或第一只怪物替换成物理输出或法术输出怪物</li>
 </ol>
 <p>这里最大的问题是：将理论分析中的怪物组合等概率随机变成了排列问题。所以将”物理甲甲乙乙”与”物理甲乙甲乙”视为了不同情况，导致随机出的组合，概率不呈现等概率分布。</p>
 <h2 id="错误代码分析"><a href="#错误代码分析" class="headerlink" title="错误代码分析"></a>错误代码分析</h2><p><strong>1.0版本</strong></p>
@@ -364,9 +364,9 @@
 <p>可以发现<strong>Combinations_Replacement</strong>是对可放回抽取组合模型公式中的”01”串生成模拟，算法复杂度为O(n + k)。</p>
 <h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>本文从一次简单代码优化，启发成剖析<strong>古典概型</strong>的概率模型，最后转成<strong>落地代码</strong>解析与优化。贯彻从表象问题深入浅出的探讨，对概率问题总结出以下几点经验：</p>
 <p><strong>1、确认问题核心，落地过程中不应偏离方向</strong></p>
-<p>理论分析开始到程序落地代码分析结束，都强调了该问题本质是<strong>古典概型</strong>组合情况的随机生成。但在原代码和错误代码分析中，之前错误代码思路往往是忽视该问题的本质，用最容易的实现方式来套生成结果是否符合需求的正确性，最终导致了随机出的组合，概率不呈现等概率分布。所以落地代码中常常错误的将<strong>组合问题</strong>当做<strong>排列问题</strong>进行求解。遇到概率问题时，要先确认问题核心，寻找确定的数学模型，并且在实际编码过程中思考自己的代码是否符合理论分析的数学模型。</p>
+<p>理论分析开始到程序落地代码分析结束，都强调了该问题本质是<strong>古典概型</strong>组合情况的随机生成。但在原代码和错误代码分析中，之前错误代码思路往往是忽视该问题的本质，它们用最容易的实现方式来套生成结果，以此为标准衡量是否符合需求，才最终导致随机出的组合，概率不呈现等概率分布。所以落地代码中常常错误的将<strong>组合问题</strong>当做<strong>排列问题</strong>进行求解。遇到概率问题时，要先确认问题核心，寻找确定的数学模型，并且在实际编码过程中思考自己的代码是否符合理论分析的数学模型。</p>
 <p><strong>2、用自动化测试，发现代码漏洞</strong></p>
-<p>在概率的定义中可以发现，事件的概率是衡量该事件发生的可能性的量度。虽然在一次随机试验中某个事件的发生是带有偶然性的，但那些可在相同条件下大量重复的随机试验却往往呈现出明显的数量规律。</p>
+<p>在概率的定义中可以发现，事件的概率是衡量该事件发生可能性的量度。虽然在一次随机试验中某个事件的发生是带有偶然性的，但那些可在相同条件下大量重复的随机试验却往往呈现出明显的数量规律。</p>
 <p>那么实际操作过程中可以使用自动化测试代码，对随机发生的事情进行大量重复试验，用每个基本事件出现的频率来衡量落地代码的正确性，本次使用的测试代码如下：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">Test</span>():</span><br><span class="line">    <span class="keyword">import</span> itertools</span><br><span class="line">    lst = []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> itertools.combinations_with_replacement([<span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>], <span class="number">4</span>):</span><br><span class="line">        lst.append((<span class="number">1</span>, ) + i)</span><br><span class="line">        lst.append((<span class="number">2</span>, ) + i)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> itertools.combinations_with_replacement([<span class="number">4</span>, <span class="number">5</span>, <span class="number">6</span>], <span class="number">3</span>):</span><br><span class="line">        lst.append((<span class="number">1</span>, <span class="number">1</span>) + i)</span><br><span class="line">        lst.append((<span class="number">1</span>, <span class="number">2</span>) + i)</span><br><span class="line">        lst.append((<span class="number">2</span>, <span class="number">2</span>) + i)</span><br><span class="line">        lst.append((<span class="number">1</span>, <span class="number">3</span>) + i)</span><br><span class="line">        lst.append((<span class="number">2</span>, <span class="number">3</span>) + i)</span><br><span class="line">    <span class="comment"># 生成所有基本事件，并由lst缓存起来</span></span><br><span class="line">    iTest = <span class="number">100000</span>  <span class="comment"># 进行100000次队伍的生成</span></span><br><span class="line">    dBuild = &#123;&#125;</span><br><span class="line">    <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(iTest):</span><br><span class="line">        tRet = <span class="built_in">tuple</span>(<span class="built_in">sorted</span>(Build()))  <span class="comment"># 生成队伍排除排列方案的干扰，用于统计数据</span></span><br><span class="line">        dBuild[tRet] = dBuild.get(tRet, <span class="number">0</span>) + <span class="number">1</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> lst:</span><br><span class="line">        fRatio = dBuild.get(i, <span class="number">0</span>) / iTest</span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">abs</span>(fRatio - <span class="number">0.0125</span>) &gt;= <span class="number">0.001</span>:  <span class="comment"># 判断每个基本事件生成频率是否接近1/80的概率值</span></span><br><span class="line">            <span class="built_in">print</span>(<span class="string">&quot;ratio %s err: %s / %s = %s&quot;</span> % (i, dBuild.get(i, <span class="number">0</span>), iTest, fRatio))</span><br></pre></td></tr></table></figure>
 
